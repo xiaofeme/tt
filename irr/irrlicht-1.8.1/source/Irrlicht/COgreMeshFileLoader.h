@@ -236,14 +236,14 @@ private:
 
 	void composeMeshBufferMaterial(scene::IMeshBuffer* mb, const core::stringc& materialName);
 	scene::SMeshBuffer* composeMeshBuffer(const core::array<s32>& indices, const OgreGeometry& 	geom,const core::stringc& materialName);
-	scene::SMeshBufferLightMap* composeMeshBufferLightMap(const core::array<s32>& indices, const OgreGeometry& geom);
-	scene::IMeshBuffer* composeMeshBufferSkinned(scene::CSkinnedMesh& mesh, const core::array<s32>& indices, const OgreGeometry& geom);
+	scene::SMeshBufferLightMap* composeMeshBufferLightMap(const core::array<s32>& indices, const OgreGeometry& geom, const core::stringc& materialName);
+	scene::IMeshBuffer* composeMeshBufferSkinned(scene::CSkinnedMesh& mesh, const core::array<s32>& indices, const OgreGeometry& geom, const core::stringc& materialName);
 	void composeObject(void);
 	bool readColor(io::IReadFile* meshFile, video::SColor& col);
 	void getMaterialToken(io::IReadFile* file, core::stringc& token, bool noNewLine=false);
 	void readTechnique(io::IReadFile* meshFile, OgreMaterial& mat);
 	void readPass(io::IReadFile* file, OgreTechnique& technique);
-	void loadMaterials(io::IReadFile* file);
+	void loadMaterials(io::IReadFile* file, io::path matName = "");
 	bool loadSkeleton(io::IReadFile* meshFile, const core::stringc& name);
 	void clearMeshes();
 

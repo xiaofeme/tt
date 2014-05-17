@@ -97,17 +97,18 @@ class CAnimator
         
 
 // should be implemented by inherited class
-        virtual void updateMovement(unsigned int passedTime)
-        {
-            
-        }
+        virtual void updateMovement(unsigned int passedTime)=0;
+
 
         void insertIdle(u32 time)
         {
             m_idle = time;
         }
 
-        virtual const char * getName() = 0;
+        virtual const char * getName()
+        {
+            return "unknown";
+        }
         
 private:
         u32 m_idle;

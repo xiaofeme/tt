@@ -56,6 +56,8 @@ public:
 		{
 			m_sceneNode->getMaterial(0).BackfaceCulling = false;
 		}
+        
+        m_sceneNode->setDebugDataVisible(scene::EDS_SKELETON);
 
         m_smgr = smgr;
         m_smgr->grab();
@@ -804,6 +806,7 @@ class CIrr3DEngine: public i3DEngine, public IEventReceiver
 	
 			irrDevice->getFileSystem()->addFileArchive("../../models/table");
 			irrDevice->getFileSystem()->addFileArchive("../../models/ball");
+            irrDevice->getFileSystem()->addFileArchive("../../models/test");
 			m_ballCtrl = &m_ball1;
 
 			return 0;

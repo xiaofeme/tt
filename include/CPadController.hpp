@@ -8,7 +8,7 @@
 #include "CMovements.hpp"
 #include "GameSceneManager.hpp"
 
-class CPlayerController: public IAnimatorObserver
+class CPlayerController: public IAnimatorObserver, public CAnimator
 {
 public:
 
@@ -28,14 +28,16 @@ public:
         static int pad_num = 0;
         pad_num++;
 		char name[16];
-		sprintf(name, "pad%d", pad_num);
-        m_pad = getGameSceneMgr()->createObject(_string(name), _string("pad.mesh"));
+		sprintf(name, "player%d", pad_num);
+        m_pad = getGameSceneMgr()->createObject(_string(name), _string("m1_male1591.mesh"));
         if (m_pad == NULL)
         {
             return;
         }
 
-        m_pad->setPos(-2.3f, 0.5, 0);
+        m_pad->setPos(-2.3f, -0.76, -1);
+
+        m_pad->addAnimator(this);
 
 #if 0
         CGameSceneMgr::getInstance()->addAnimatedNode(m_arm);
@@ -60,13 +62,9 @@ public:
 #endif
     }
 
-    void start(u32 time)
+    void updateMovement(unsigned int passedTime)
     {
-        CRotation * rot = new CRotation(90, 2000, 0.7f);
-        rot->insertIdle(2000);
         
-        //m_body->addAnimator(rot);
-        //m_body->startAnimate(time);
     }
 
     void started(int id)

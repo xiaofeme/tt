@@ -325,8 +325,6 @@ void CGameSceneManager::processNode(rapidxml::xml_node<>* XMLNode)
             obj->setPos(t.position);
             obj->setScale(t.scale);
             obj->setRotation(t.quaternion);
-
-            m_all_objects.push_back(obj);
         }
         return;
     }

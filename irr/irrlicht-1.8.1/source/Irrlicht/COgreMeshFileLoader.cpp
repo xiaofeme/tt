@@ -15,7 +15,7 @@
 #include "coreutil.h"
 
 #ifdef _DEBUG
-//#define IRR_OGRE_LOADER_DEBUG
+#define IRR_OGRE_LOADER_DEBUG
 #endif
 
 namespace irr
@@ -132,7 +132,7 @@ IAnimatedMesh* COgreMeshFileLoader::createMesh(io::IReadFile* file)
 		Mesh->drop();
 
 	CurrentlyLoadingFromPath = FileSystem->getFileDir(file->getFileName());
-	loadMaterials(file);
+	//loadMaterials(file);
 
 	if (readChunk(file))
 	{
@@ -386,6 +386,12 @@ bool COgreMeshFileLoader::readSubMesh(io::IReadFile* file, ChunkData& parent, Og
 #ifdef IRR_OGRE_LOADER_DEBUG
 	os::Printer::log("using material", subMesh.Material, ELL_DEBUG);
 #endif
+    if (!subMesh.Material.empty())
+    {
+        io::path filename = subMesh.Material+".material";
+        loadMaterials(NULL, filename);
+    }
+    
 	readBool(file, parent, subMesh.SharedVertices);
 
 	s32 numIndices;
@@ -555,9 +561,13 @@ geom,const core::stringc& materialName)
 }
 
 
-scene::SMeshBufferLightMap* COgreMeshFileLoader::composeMeshBufferLightMap(const core::array<s32>& indices, const OgreGeometry& geom)
+scene::SMeshBufferLightMap* COgreMeshFileLoader::composeMeshBufferLightMap(const core::array<s32>& indices, const OgreGeometry& 
+geom, const core::stringc& materialName)
 {
 	scene::SMeshBufferLightMap *mb=new scene::SMeshBufferLightMap();
+
+    // here should compose material firstly, 
+    composeMeshBufferMaterial(mb, materialName);
 
 	u32 i;
 	mb->Indices.set_used(indices.size());
@@ -631,9 +641,13 @@ scene::SMeshBufferLightMap* COgreMeshFileLoader::composeMeshBufferLightMap(const
 }
 
 
-scene::IMeshBuffer* COgreMeshFileLoader::composeMeshBufferSkinned(scene::CSkinnedMesh& mesh, const core::array<s32>& indices, const OgreGeometry& geom)
+scene::IMeshBuffer* COgreMeshFileLoader::composeMeshBufferSkinned(scene::CSkinnedMesh& mesh, const core::array<s32>& indices, const OgreGeometry& geom, const core::stringc& materialName)
 {
 	scene::SSkinMeshBuffer *mb=mesh.addMeshBuffer();
+
+    // here should compose material firstly, 
+    composeMeshBufferMaterial(mb, materialName);
+    
 	if (NumUV>1)
 	{
 		mb->convertTo2TCoords();
@@ -733,7 +747,7 @@ void COgreMeshFileLoader::composeObject(void)
 			{
 				if (Skeleton.Bones.size())
 				{
-					mb = composeMeshBufferSkinned(*(CSkinnedMesh*)Mesh, Meshes[i].SubMeshes[j].Indices, Meshes[i].Geometry);
+					mb = composeMeshBufferSkinned(*(CSkinnedMesh*)Mesh, Meshes[i].SubMeshes[j].Indices, Meshes[i].Geometry, Meshes[i].SubMeshes[j].Material);
 				}
 				else if (NumUV < 2)
 				{
@@ -741,14 +755,14 @@ void COgreMeshFileLoader::composeObject(void)
 				}
 				else
 				{
-					mb = composeMeshBufferLightMap(Meshes[i].SubMeshes[j].Indices, Meshes[i].Geometry);
+					mb = composeMeshBufferLightMap(Meshes[i].SubMeshes[j].Indices, Meshes[i].Geometry, Meshes[i].SubMeshes[j].Material);
 				}
 			}
 			else
 			{
 				if (Skeleton.Bones.size())
 				{
-					mb = composeMeshBufferSkinned(*(CSkinnedMesh*)Mesh, Meshes[i].SubMeshes[j].Indices, Meshes[i].SubMeshes[j].Geometry);
+					mb = composeMeshBufferSkinned(*(CSkinnedMesh*)Mesh, Meshes[i].SubMeshes[j].Indices, Meshes[i].SubMeshes[j].Geometry, Meshes[i].SubMeshes[j].Material);
 				}
 				else if (NumUV < 2)
 				{
@@ -756,13 +770,13 @@ void COgreMeshFileLoader::composeObject(void)
 				}
 				else
 				{
-					mb = composeMeshBufferLightMap(Meshes[i].SubMeshes[j].Indices, Meshes[i].SubMeshes[j].Geometry);
+					mb = composeMeshBufferLightMap(Meshes[i].SubMeshes[j].Indices, Meshes[i].SubMeshes[j].Geometry, Meshes[i].SubMeshes[j].Material);
 				}
 			}
 
 			if (mb != 0)
 			{
-				composeMeshBufferMaterial(mb, Meshes[i].SubMeshes[j].Material);
+				//composeMeshBufferMaterial(mb, Meshes[i].SubMeshes[j].Material);
 				if (!Skeleton.Bones.size())
 				{
 					((SMesh*)Mesh)->addMeshBuffer(mb);
@@ -801,16 +815,30 @@ void COgreMeshFileLoader::composeObject(void)
 			}
 		}
 
+        
+
 		// Weights
 		u32 bufCount=0;
 		for (u32 i=0; i<Meshes.size(); ++i)
 		{
+            for (u32 k=0; k<Meshes[i].BoneAssignments.size(); ++k)
+			{
+                
+				const OgreBoneAssignment& ba = Meshes[i].BoneAssignments[k];
+                if (ba.BoneID < m->getJointCount())
+				{
+					ISkinnedMesh::SWeight* w = m->addWeight(m->getAllJoints()[ba.BoneID]);
+					w->strength=ba.Weight;
+					w->vertex_id=ba.VertexID;
+					w->buffer_id=0;
+				}
+			}
 			for (u32 j=0; j<Meshes[i].SubMeshes.size(); ++j)
 			{
 				for (u32 k=0; k<Meshes[i].SubMeshes[j].BoneAssignments.size(); ++k)
 				{
 					const OgreBoneAssignment& ba = Meshes[i].SubMeshes[j].BoneAssignments[k];
-					if (ba.BoneID<m->getJointCount())
+                    if (ba.BoneID<m->getJointCount())
 					{
 						ISkinnedMesh::SWeight* w = m->addWeight(m->getAllJoints()[ba.BoneID]);
 						w->strength=ba.Weight;
@@ -1253,19 +1281,27 @@ void COgreMeshFileLoader::readTechnique(io::IReadFile* file, OgreMaterial& mat)
 }
 
 
-void COgreMeshFileLoader::loadMaterials(io::IReadFile* meshFile)
+void COgreMeshFileLoader::loadMaterials(io::IReadFile* meshFile, io::path matName)
 {
 #ifdef IRR_OGRE_LOADER_DEBUG
 	os::Printer::log("Load Materials", ELL_DEBUG);
 #endif
 	core::stringc token;
 	io::IReadFile* file = 0;
-	io::path filename = FileSystem->getFileBasename(meshFile->getFileName(), false) + ".material";
-	if (FileSystem->existFile(filename))
-		file = FileSystem->createAndOpenFile(filename);
-	else
-		file = FileSystem->createAndOpenFile(FileSystem->getFileDir(meshFile->getFileName())+"/"+filename);
-
+	io::path filename;
+    if (meshFile != NULL)
+    {
+    	filename = FileSystem->getFileBasename(meshFile->getFileName(), false) + ".material";
+    	if (FileSystem->existFile(filename))
+    		file = FileSystem->createAndOpenFile(filename);
+    	else
+    		file = FileSystem->createAndOpenFile(FileSystem->getFileDir(meshFile->getFileName())+"/"+filename);
+    }
+    else
+    {
+        file = FileSystem->createAndOpenFile(matName);
+    }
+    
 	if (!file)
 	{
 		os::Printer::log("Could not load OGRE material", filename);
@@ -1361,7 +1397,7 @@ bool COgreMeshFileLoader::loadSkeleton(io::IReadFile* meshFile, const core::stri
 		file = FileSystem->createAndOpenFile(FileSystem->getFileDir(meshFile->getFileName())+"/"+filename);
 	if (!file)
 	{
-	//	os::Printer::log("Could not load matching skeleton", name);
+		os::Printer::log("Could not load matching skeleton", name);
 		return false;
 	}
 
@@ -1378,7 +1414,7 @@ bool COgreMeshFileLoader::loadSkeleton(io::IReadFile* meshFile, const core::stri
 	core::stringc skeletonVersion;
 	ChunkData head;
 	readString(file, head, skeletonVersion);
-	if (skeletonVersion != "[Serializer_v1.10]")
+	if (skeletonVersion != "[Serializer_v1.80]")
 	{
 		file->drop();
 		return false;
@@ -1473,6 +1509,12 @@ bool COgreMeshFileLoader::loadSkeleton(io::IReadFile* meshFile, const core::stri
 #endif
 			break;
 		default:
+            #ifdef IRR_OGRE_LOADER_DEBUG
+				os::Printer::log("Skipping", core::stringc(data.header.id), ELL_DEBUG);
+            #endif
+				// ignore chunk
+				file->seek(data.header.length-data.read, true);
+				data.read += data.header.length-data.read;
 			break;
 		}
 	}
